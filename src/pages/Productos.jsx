@@ -1,4 +1,4 @@
-export default function Blog() {
+export default function Productos() {
   const posts = [
     { id:"TC001", titulo:"Torta Cuadrada de Chocolate", texto:"$45.000", img:"/imagenes/torta-cuadrada.jpg", link:"/producto/TC001" },
     // agrega más si quieres
