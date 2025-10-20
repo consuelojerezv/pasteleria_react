@@ -21,7 +21,7 @@ export default function Navbar() {
         <div id="menu" className="collapse navbar-collapse">
           <ul className="navbar-nav ms-auto">
             <li className="nav-item"><Link className="nav-link" to="/">Inicio</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/blog">Blog</Link></li>
+            <li className="nav-item"><Link className="nav-link" to="/blog">Productos</Link></li>
             <li className="nav-item"><Link className="nav-link" to="/contacto">Contacto</Link></li>
             <li className="nav-item">
               <Link className="nav-link" to="/carrito">🛒 <span className="badge bg-success">{units}</span></Link>
