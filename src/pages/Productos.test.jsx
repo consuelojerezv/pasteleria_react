@@ -1,14 +1,21 @@
-import { render, screen } from '@testing-library/react'
-import Productos from './Productos'
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import Productos from "./Productos";
 
-describe('Productos', () => {
-  it('renderiza la sección de productos', () => {
-    render(<Productos />)
-    // Busca un título típico o un elemento de tarjeta
-    const ok =
-      screen.queryByText(/productos/i) ||
-      screen.queryAllByRole('img').length > 0 ||
-      screen.queryAllByText(/añadir/i).length > 0
-    expect(Boolean(ok)).toBe(true)
-  })
-})
+describe("Productos", () => {
+  it("renderiza la sección de productos", () => {
+    render(
+      <MemoryRouter>
+        <Productos />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Nuestros Productos/i)).toBeInTheDocument();
+
+    // usar getAllByText y verificar al menos una coincidencia
+    const matches = screen.getAllByText(
+      /Torta Cuadrada de Chocolate|Torta Circular de Vainilla/i
+    );
+    expect(matches.length).toBeGreaterThan(0);
+  });
+});
