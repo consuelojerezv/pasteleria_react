@@ -23,27 +23,35 @@ export default function InicioSesion() {
     const stored = localStorage.getItem("usuarios");
     const usuarios = stored ? JSON.parse(stored) : [];
 
-    const usuario = usuarios.find(u => u.email === email.toLowerCase() && u.password === password);
+    const usuario = usuarios.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    );
 
     if (!usuario) {
       setError("Correo o contraseña incorrectos.");
       return;
     }
 
-    // inicio de sesión exitoso: puedes guardar token / estado de sesión
-    localStorage.setItem("sessionUser", JSON.stringify({ nombre: usuario.nombre, email: usuario.email }));
-    // redirigir a home o a la página que quieras
+    // Guardar con la key que esperan los tests
+    localStorage.setItem(
+      "usuarioActual",
+      JSON.stringify({ nombre: usuario.nombre, email: usuario.email })
+    );
+
+    // llamar alert (los tests mockean window.alert)
+    alert("Inicio de sesión correcto");
+
     navigate("/");
   }
 
   return (
     <main className="page">
-      <h2 className="text-center mb-4">Inicio de Sesion</h2>
+      <h2 className="text-center mb-4">Inicio de Sesión</h2>
       <div className="row justify-content-center">
         <div className="col-12 col-md-6">
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-3">
-              <label htmlFor="email" className="form-label">Correo Electrónico</label>
+              <label htmlFor="email" className="form-label">Correo</label>
               <input
                 type="email"
                 className={`form-control ${email && !isEmailValid ? "is-invalid" : ""}`}
@@ -70,7 +78,7 @@ export default function InicioSesion() {
             {error && <div className="alert alert-danger">{error}</div>}
 
             <button type="submit" className="btn btn-dark" disabled={!isFormValid}>
-              Iniciar Sesion
+              Entrar
             </button>
           </form>
         </div>

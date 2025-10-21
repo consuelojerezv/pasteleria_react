@@ -1,7 +1,8 @@
+import { Link } from "react-router-dom";
+
 export default function Productos() {
   const posts = [
     { id:"TC001", titulo:"Torta Cuadrada de Chocolate", texto:"$45.000", img:"/imagenes/torta-cuadrada.jpg", link:"/producto/TC001" },
-    // agrega más si quieres
     { id:"TV002", titulo:"Torta Circular de Vainilla", texto:"$40.000", img:"/img/Circular-Vainilla.webp", link:"/producto/TV002" },
     { id:"TF003", titulo:"Torta Cuadrada de Frutas", texto:"$50.000", img:"/img/Cuadrada-Frutas.jpg", link:"/producto/TF003" },
     { id:"TR004", titulo:"Torta Cuadrada de Manjar", texto:"$42.000", img:"/img/Cuadrada-Manjar.jpeg", link:"/producto/TR004"},
@@ -19,6 +20,31 @@ export default function Productos() {
     { id:"TL016", titulo:"Torta Especial de Boda", texto:"$60.000", img:"/img/Especial-Boda.avif", link:"/producto/TL016"}   
   ];  
 
+  function parsePrice(text) {
+    if (!text) return 0;
+    const digits = String(text).replace(/\D/g, "");
+    return digits ? Number(digits) : 0;
+  }
+
+  function addToCart(p) {
+    const raw = localStorage.getItem("carrito");
+    const cart = raw ? JSON.parse(raw) : [];
+    const existingIndex = cart.findIndex(item => String(item.id) === String(p.id));
+    if (existingIndex > -1) {
+      cart[existingIndex].cantidad = (cart[existingIndex].cantidad ?? 1) + 1;
+    } else {
+      cart.push({
+        id: p.id,
+        titulo: p.titulo,
+        precio: parsePrice(p.texto),
+        img: p.img,
+        cantidad: 1
+      });
+    }
+    localStorage.setItem("carrito", JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent("cartUpdated"));
+    alert("Producto agregado al carrito");
+  }
 
   return (
     <main className="page">
@@ -31,7 +57,16 @@ export default function Productos() {
               <div className="card-body d-flex flex-column">
                 <h5 className="card-title">{p.titulo}</h5>
                 <p className="card-text flex-grow-1">{p.texto}</p>
-                <a className="btn btn-dark mt-2 align-self-start" href={p.link}>Ver producto</a>
+                <div className="d-flex">
+                  <Link className="btn btn-dark mt-2 align-self-start" to={p.link}>Ver producto</Link>
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary mt-2 ms-2"
+                    onClick={() => addToCart(p)}
+                  >
+                    Agregar al carrito
+                  </button>
+                </div>
               </div>
             </div>
           </div>
