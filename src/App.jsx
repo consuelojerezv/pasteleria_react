@@ -7,6 +7,7 @@ import Contacto from "./pages/Contacto";
 import DetalleProducto from "./pages/DetalleProducto";
 import InicioSesion from "./pages/InicioSesion";
 import Registro from "./pages/Registro";
+import Footer from "./components/footer.jsx";
 
 export default function App() {
   return (
@@ -20,7 +21,8 @@ export default function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/producto/:id" element={<DetalleProducto />} />
-      </Routes>
+      </Routes> 
+      <Footer />
     </BrowserRouter>
   );
 }
