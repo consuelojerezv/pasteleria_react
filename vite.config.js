@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: './src/setupTests.js',  // 👈 usa tu archivo real
+    setupFiles: './src/setupTests.js',  
     css: true,
     coverage: {
       provider: 'v8',
