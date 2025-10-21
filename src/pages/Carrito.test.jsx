@@ -4,7 +4,13 @@ import Carrito from './Carrito'
 import { clearCart } from '../lib/cart'
 
 describe('Carrito', () => {
-  beforeEach(() => clearCart())
+  beforeEach(() => {
+    // Asegura que el localStorage esté vacío antes de cada test
+    localStorage.removeItem('carrito')
+    if (typeof clearCart === 'function') clearCart()
+    // Si la app escucha eventos para actualizar UI, notifica
+    window.dispatchEvent(new Event('cartUpdated'))
+  })
 
   it('muestra mensaje o UI de carrito vacío', () => {
     render(<MemoryRouter><Carrito /></MemoryRouter>)
