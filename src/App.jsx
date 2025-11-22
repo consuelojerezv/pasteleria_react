@@ -10,12 +10,6 @@ import Registro from "./pages/Registro";
 import Footer from "./components/footer.jsx";
 import Admin from "./components/admin";
 
-
-
-
-
-
-
 export default function App() {
   return (
     <BrowserRouter>
