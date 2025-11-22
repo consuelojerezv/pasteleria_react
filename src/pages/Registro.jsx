@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 
 export default function Registro() {
   const [nombre, setNombre] = useState("");
@@ -106,5 +107,38 @@ export default function Registro() {
         </div>
       </div>
     </main>
+  );
+}
+
+
+export default function Registro() {
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    correo: "",
+  });
+
+  const handleChange = (e) => {
+    setForm({...form, [e.target.name]: e.target.value});
+  };
+
+  const registrarUsuario = () => {
+    axios.post("http://localhost:8080/api/v1/auth/register", form)
+      .then(res => {
+        alert("Usuario registrado!");
+      })
+      .catch(err => console.log(err));
+  };
+
+  return (
+    <div>
+      <h2>Registro</h2>
+
+      <input name="username" onChange={handleChange} placeholder="Usuario" />
+      <input name="correo" onChange={handleChange} placeholder="Correo" />
+      <input name="password" type="password" onChange={handleChange} placeholder="Contraseña" />
+
+      <button onClick={registrarUsuario}>Registrar</button>
+    </div>
   );
 }
