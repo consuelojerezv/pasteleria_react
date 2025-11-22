@@ -142,3 +142,172 @@ export default function Registro() {
     </div>
   );
 }
+
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+export default function Registro() {
+  // -------------------------------
+  // Estados del formulario
+  // -------------------------------
+  const [form, setForm] = useState({
+    nombre: "",
+    correo: "",
+    password: "",
+    rol: ""
+  });
+
+  const [usuarios, setUsuarios] = useState([]);
+  const [editId, setEditId] = useState(null);
+
+  // --------------------------------
+  // CONTROLAR FORMULARIO
+  // --------------------------------
+  const handleChange = (e) => {
+    setForm({...form, [e.target.name]: e.target.value});
+  };
+
+  // --------------------------------
+  // 1. LISTAR USUARIOS
+  // --------------------------------
+  const cargarUsuarios = () => {
+    axios.get("http://localhost:8080/api/v1/usuarios", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      }
+    })
+      .then(res => setUsuarios(res.data))
+      .catch(err => console.log(err));
+  };
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, []);
+
+  // --------------------------------
+  // 2. CREAR USUARIO
+  // --------------------------------
+  const crearUsuario = () => {
+    axios.post("http://localhost:8080/api/v1/usuarios", form, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      }
+    })
+      .then(() => {
+        alert("Usuario creado!");
+        cargarUsuarios();
+        setForm({ nombre: "", correo: "", password: "", rol: "" });
+      })
+      .catch(err => console.log(err));
+  };
+
+  // --------------------------------
+  // 3. CARGAR DATOS PARA EDICIÓN
+  // --------------------------------
+  const cargarEdicion = (usuario) => {
+    setEditId(usuario.id);
+    setForm({
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      password: usuario.password,
+      rol: usuario.rol
+    });
+  };
+
+  // --------------------------------
+  // 4. GUARDAR EDICIÓN
+  // --------------------------------
+  const editarUsuario = () => {
+    axios.put(`http://localhost:8080/api/v1/usuarios/${editId}`, form, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      }
+    })
+      .then(() => {
+        alert("Usuario actualizado!");
+        cargarUsuarios();
+        setEditId(null);
+        setForm({ nombre: "", correo: "", password: "", rol: "" });
+      })
+      .catch(err => console.log(err));
+  };
+
+  // --------------------------------
+  // 5. ELIMINAR USUARIO
+  // --------------------------------
+  const eliminarUsuario = (id) => {
+    axios.delete(`http://localhost:8080/api/v1/usuarios/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      }
+    })
+      .then(() => {
+        alert("Usuario eliminado!");
+        cargarUsuarios();
+      })
+      .catch(err => console.log(err));
+  };
+
+  return (
+    <div style={{ padding: "20px" }}>
+      <h2>Registro / CRUD Usuarios</h2>
+
+      {/* FORMULARIO CRUD */}
+      <div>
+        <h3>{editId ? "Editar Usuario" : "Crear Usuario"}</h3>
+
+        <input
+          name="nombre"
+          placeholder="Nombre"
+          value={form.nombre}
+          onChange={handleChange}
+        />
+
+        <input
+          name="correo"
+          placeholder="Correo"
+          value={form.correo}
+          onChange={handleChange}
+        />
+
+        <input
+          name="password"
+          placeholder="Contraseña"
+          value={form.password}
+          onChange={handleChange}
+        />
+
+        <input
+          name="rol"
+          placeholder="Rol (admin/cliente)"
+          value={form.rol}
+          onChange={handleChange}
+        />
+
+        {editId ? (
+          <button onClick={editarUsuario}>Guardar Cambios</button>
+        ) : (
+          <button onClick={crearUsuario}>Crear Usuario</button>
+        )}
+      </div>
+
+      {/* LISTADO */}
+      <h3>Usuarios Registrados</h3>
+      <ul>
+        {usuarios.map(u => (
+          <li key={u.id}>
+            <b>{u.nombre}</b> - {u.correo} - rol: {u.rol}
+
+            <button onClick={() => cargarEdicion(u)}>
+              Editar
+            </button>
+
+            <button onClick={() => eliminarUsuario(u.id)}>
+              Eliminar
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
