@@ -8,6 +8,13 @@ import DetalleProducto from "./pages/DetalleProducto";
 import InicioSesion from "./pages/InicioSesion";
 import Registro from "./pages/Registro";
 import Footer from "./components/footer.jsx";
+import Admin from "./components/admin";
+
+
+
+
+
+
 
 export default function App() {
   return (
@@ -15,6 +22,7 @@ export default function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/productos" element={<Productos/>} />
         <Route path="/carrito" element={<Carrito />} />
         <Route path="/inicio" element={<InicioSesion />} />
@@ -26,3 +34,6 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+
+
