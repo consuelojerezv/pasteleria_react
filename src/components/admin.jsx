@@ -3,21 +3,16 @@ import axios from "axios";
 
 export default function Admin() {
   const [productos, setProductos] = useState([]);
-
   const [form, setForm] = useState({
     nombre: "",
     descripcion: "",
     precio: "",
     imagen: "",
   });
-
-  const [editId, setEditId] = useState(null);
+  const [editCodigo, setEditCodigo] = useState(null);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
-  // ============================
-  // 1. CARGAR PRODUCTOS
-  // ============================
   const cargarProductos = () => {
     setError("");
     axios
@@ -31,7 +26,7 @@ export default function Admin() {
       })
       .catch((err) => {
         console.error(err);
-        setError("No se pudieron cargar los productos (revisar token / backend).");
+        setError("No se pudieron cargar los productos (revisar token/backend).");
       });
   };
 
@@ -39,9 +34,6 @@ export default function Admin() {
     cargarProductos();
   }, []);
 
-  // ============================
-  // 2. CONTROLAR FORMULARIO
-  // ============================
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -50,9 +42,6 @@ export default function Admin() {
     }));
   };
 
-  // ============================
-  // 3. GUARDAR (CREAR / EDITAR)
-  // ============================
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
@@ -71,21 +60,32 @@ export default function Admin() {
       },
     };
 
-    // Si hay editId, hacemos PUT (editar). Si no, POST (crear)
-    const peticion = editId
-      ? axios.put(`http://localhost:8080/api/v1/productos/${editId}`, data, config)
-      : axios.post("http://localhost:8080/api/v1/productos", data, config);
+    const peticion = editCodigo
+      ? axios.put(
+          `http://localhost:8080/api/v1/productos/${editCodigo}`,
+          data,
+          config
+        )
+      : axios.post(
+          "http://localhost:8080/api/v1/productos",
+          data,
+          config
+        );
 
     peticion
       .then(() => {
-        setMensaje(editId ? "Producto actualizado correctamente." : "Producto creado correctamente.");
+        setMensaje(
+          editCodigo
+            ? "Producto actualizado correctamente."
+            : "Producto creado correctamente."
+        );
         setForm({
           nombre: "",
           descripcion: "",
           precio: "",
           imagen: "",
         });
-        setEditId(null);
+        setEditCodigo(null);
         cargarProductos();
       })
       .catch((err) => {
@@ -94,11 +94,8 @@ export default function Admin() {
       });
   };
 
-  // ============================
-  // 4. EDITAR (CARGAR EN FORM)
-  // ============================
   const handleEdit = (producto) => {
-    setEditId(producto.id); // ajusta al nombre real de tu PK
+    setEditCodigo(producto.codigo); // PK real del backend
     setForm({
       nombre: producto.nombre || "",
       descripcion: producto.descripcion || "",
@@ -109,14 +106,11 @@ export default function Admin() {
     setError("");
   };
 
-  // ============================
-  // 5. ELIMINAR
-  // ============================
-  const handleDelete = (id) => {
+  const handleDelete = (codigo) => {
     if (!window.confirm("¿Seguro que quieres eliminar este producto?")) return;
 
     axios
-      .delete(`http://localhost:8080/api/v1/productos/${id}`, {
+      .delete(`http://localhost:8080/api/v1/productos/${codigo}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -131,9 +125,6 @@ export default function Admin() {
       });
   };
 
-  // ============================
-  // 6. RENDER
-  // ============================
   return (
     <div style={{ padding: "20px" }}>
       <h1>Panel de Administración</h1>
@@ -141,65 +132,70 @@ export default function Admin() {
       {error && <p style={{ color: "red" }}>{error}</p>}
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
 
-      {/* FORMULARIO */}
-      <h2>{editId ? "Editar producto" : "Crear producto"}</h2>
-      <form onSubmit={handleSubmit} style={{ maxWidth: "400px", marginBottom: "30px" }}>
-        <div>
-          <label>Nombre</label>
+      <h2>{editCodigo ? "Editar producto" : "Crear producto"}</h2>
+      <form
+        onSubmit={handleSubmit}
+        style={{ maxWidth: "400px", marginBottom: "30px" }}
+      >
+        <div className="mb-2">
+          <label className="form-label">Nombre</label>
           <input
             type="text"
             name="nombre"
+            className="form-control"
             value={form.nombre}
             onChange={handleChange}
             required
           />
         </div>
 
-        <div>
-          <label>Descripción</label>
+        <div className="mb-2">
+          <label className="form-label">Descripción</label>
           <input
             type="text"
             name="descripcion"
+            className="form-control"
             value={form.descripcion}
             onChange={handleChange}
           />
         </div>
 
-        <div>
-          <label>Precio</label>
+        <div className="mb-2">
+          <label className="form-label">Precio</label>
           <input
             type="number"
             name="precio"
+            className="form-control"
             value={form.precio}
             onChange={handleChange}
             required
           />
         </div>
 
-        <div>
-          <label>URL Imagen</label>
+        <div className="mb-2">
+          <label className="form-label">URL Imagen</label>
           <input
             type="text"
             name="imagen"
+            className="form-control"
             value={form.imagen}
             onChange={handleChange}
           />
         </div>
 
-        <button type="submit" style={{ marginTop: "10px" }}>
-          {editId ? "Actualizar" : "Crear"}
+        <button type="submit" className="btn btn-primary mt-2">
+          {editCodigo ? "Actualizar" : "Crear"}
         </button>
       </form>
 
-      {/* LISTADO */}
       <h2>Listado de productos</h2>
       {productos.length === 0 ? (
         <p>No hay productos registrados.</p>
       ) : (
-        <table border="1" cellPadding="6" cellSpacing="0">
+        <table className="table table-bordered table-striped">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Código</th>
               <th>Nombre</th>
               <th>Descripción</th>
               <th>Precio</th>
@@ -209,8 +205,8 @@ export default function Admin() {
           </thead>
           <tbody>
             {productos.map((p) => (
-              <tr key={p.id}>
-                <td>{p.id}</td>
+              <tr key={p.codigo}>
+                <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 <td>{p.descripcion}</td>
                 <td>{p.precio}</td>
@@ -219,13 +215,25 @@ export default function Admin() {
                     <img
                       src={p.imagen}
                       alt={p.nombre}
-                      style={{ width: "60px", height: "60px", objectFit: "cover" }}
+                      style={{
+                        width: "60px",
+                        height: "60px",
+                        objectFit: "cover",
+                      }}
                     />
                   )}
                 </td>
                 <td>
-                  <button onClick={() => handleEdit(p)}>Editar</button>
-                  <button onClick={() => handleDelete(p.id)} style={{ marginLeft: "5px" }}>
+                  <button
+                    className="btn btn-sm btn-warning me-2"
+                    onClick={() => handleEdit(p)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => handleDelete(p.codigo)}
+                  >
                     Eliminar
                   </button>
                 </td>

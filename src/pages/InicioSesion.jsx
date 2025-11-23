@@ -22,7 +22,10 @@ export default function InicioSesion() {
     }
 
     axios
-      .post("http://localhost:8080/api/v1/auth/login", { email, password })
+      .post("http://localhost:8080/api/v1/auth/login", {
+        email,
+        password,
+      })
       .then((res) => {
         const data = res?.data || {};
 
@@ -31,21 +34,27 @@ export default function InicioSesion() {
         }
 
         localStorage.setItem("token", data.accessToken);
+
         localStorage.setItem(
           "usuarioActual",
           JSON.stringify({
             nombre: data.nombre,
             email: data.email,
-            rol: data.rol,
+            rol: data.rol, // ROLE_ADMIN, ROLE_VENDEDOR, ROLE_CLIENTE
           })
         );
 
-        // Actualizar navbar sin recargar
         window.dispatchEvent(new Event("userUpdated"));
 
-        navigate("/admin"); // ENTRADA DIRECTA AL ADMIN
+        // ⬇️ Redirigir según rol
+        if (data.rol === "ROLE_ADMIN") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       })
       .catch(() => {
+        // Fallback local (si usas usuarios en localStorage)
         const stored = localStorage.getItem("usuarios");
         const usuarios = stored ? JSON.parse(stored) : [];
 
@@ -67,12 +76,12 @@ export default function InicioSesion() {
           JSON.stringify({
             nombre: usuario.nombre,
             email: usuario.email,
+            rol: "ROLE_CLIENTE", // por defecto
           })
         );
 
         window.dispatchEvent(new Event("userUpdated"));
-
-        navigate("/admin"); // TAMBIÉN VA AL ADMIN
+        navigate("/");
       });
   }
 
@@ -83,12 +92,16 @@ export default function InicioSesion() {
         <div className="col-12 col-md-6">
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-3">
-              <label className="form-label">Correo</label>
+              <label htmlFor="email" className="form-label">
+                Correo
+              </label>
               <input
                 type="email"
                 className={`form-control ${
                   email && !isEmailValid ? "is-invalid" : ""
                 }`}
+                id="email"
+                placeholder="Ingresa tu correo electrónico"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -96,10 +109,14 @@ export default function InicioSesion() {
             </div>
 
             <div className="mb-3">
-              <label className="form-label">Contraseña</label>
+              <label htmlFor="password" className="form-label">
+                Contraseña
+              </label>
               <input
                 type="password"
                 className="form-control"
+                id="password"
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -107,7 +124,11 @@ export default function InicioSesion() {
 
             {error && <div className="alert alert-danger">{error}</div>}
 
-            <button type="submit" className="btn btn-dark" disabled={!isFormValid}>
+            <button
+              type="submit"
+              className="btn btn-dark"
+              disabled={!isFormValid}
+            >
               Entrar
             </button>
           </form>

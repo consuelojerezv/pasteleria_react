@@ -1,141 +1,49 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 
 export default function Registro() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
-  const isEmailValid = !!email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isPasswordValid = password.length >= 4; // simple para tests
-  const isNombreValid = nombre.trim().length > 0;
-  const passwordsMatch = password === confirmPassword;
-  const isFormValid = isNombreValid && isEmailValid && isPasswordValid && passwordsMatch;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(email);
+  const passwordsMatch = password.length > 0 && password === confirm;
+  const isFormValid = nombre && isEmailValid && passwordsMatch;
 
   function handleSubmit(e) {
     e.preventDefault();
-    setSubmitted(true);
     setError("");
-  // console.log('Registro.handleSubmit', { nombre, email, password, confirmPassword, isFormValid, passwordsMatch });
+    setMensaje("");
+
     if (!isFormValid) {
-      if (!passwordsMatch) setError("Las contraseñas no coinciden.");
-      return;
-    }
-    const stored = localStorage.getItem("usuarios");
-    const usuarios = stored ? JSON.parse(stored) : [];
-
-    if (usuarios.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      setError("Ya existe un usuario registrado con ese correo.");
+      setError("Revisa los datos ingresados.");
       return;
     }
 
-    const nuevo = { nombre, email: email.toLowerCase(), password };
-
-    // Siempre guardar en localStorage (para compatibilidad con tests y uso sin backend)
-    usuarios.push(nuevo);
-    localStorage.setItem("usuarios", JSON.stringify(usuarios));
-
-    // Si hay token, también intentar registrar en el backend
-    const token = localStorage.getItem("token");
-    if (token) {
-      axios.post("http://localhost:8080/api/v1/usuarios", { nombre, correo: email.toLowerCase(), password }, {
-        headers: { Authorization: `Bearer ${token}` }
+    axios
+      .post("http://localhost:8080/api/v1/auth/registro", {
+        nombre,
+        email,
+        password,
       })
-        .then(() => cargarUsuarios())
-        .catch(err => console.log(err));
-    } else {
-      // feedback para tests
-      alert("Registro completado correctamente");
-    }
-
-    setNombre("");
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setSubmitted(false);
+      .then(() => {
+        setMensaje("Usuario registrado exitosamente.");
+        setNombre("");
+        setEmail("");
+        setPassword("");
+        setConfirm("");
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(
+          err?.response?.data || "Error al registrar el usuario."
+        );
+      });
   }
-
-  // -------------------------------
-  // CRUD de usuarios (usa backend si hay token, sino usa localStorage)
-  // -------------------------------
-  const [usuarios, setUsuarios] = useState([]);
-  const [editId, setEditId] = useState(null);
-
-  const cargarUsuarios = () => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      axios.get("http://localhost:8080/api/v1/usuarios", {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => setUsuarios(res.data))
-        .catch(err => console.log(err));
-    } else {
-      const stored = localStorage.getItem("usuarios");
-      setUsuarios(stored ? JSON.parse(stored) : []);
-    }
-  };
-
-  useEffect(() => {
-    cargarUsuarios();
-  }, []);
-
-  const cargarEdicion = (u) => {
-    setEditId(u.id || u.email);
-    setNombre(u.nombre);
-    setEmail(u.correo || u.email);
-    setPassword(u.password || "");
-    setConfirmPassword(u.password || "");
-  };
-
-  const guardarEdicion = () => {
-    if (!editId) return;
-    const token = localStorage.getItem("token");
-    if (token && String(editId).startsWith && !String(editId).includes("@")) {
-      // si editId es numérico/id del backend
-      axios.put(`http://localhost:8080/api/v1/usuarios/${editId}`, { nombre, correo: email, password }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(() => {
-          alert("Usuario actualizado!");
-          cargarUsuarios();
-          setEditId(null);
-          setNombre(""); setEmail(""); setPassword(""); setConfirmPassword("");
-        })
-        .catch(err => console.log(err));
-    } else {
-      // actualizar en localStorage (identificamos por email)
-      const stored = localStorage.getItem("usuarios");
-      const arr = stored ? JSON.parse(stored) : [];
-      const idx = arr.findIndex(x => x.email === (editId));
-      if (idx !== -1) {
-        arr[idx] = { nombre, email, password };
-        localStorage.setItem("usuarios", JSON.stringify(arr));
-        cargarUsuarios();
-        setEditId(null);
-        setNombre(""); setEmail(""); setPassword(""); setConfirmPassword("");
-      }
-    }
-  };
-
-  const eliminarUsuario = (idOrEmail) => {
-    const token = localStorage.getItem("token");
-    if (token && String(idOrEmail).startsWith && !String(idOrEmail).includes("@")) {
-      axios.delete(`http://localhost:8080/api/v1/usuarios/${idOrEmail}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(() => { alert("Usuario eliminado!"); cargarUsuarios(); })
-        .catch(err => console.log(err));
-    } else {
-      const stored = localStorage.getItem("usuarios");
-      const arr = stored ? JSON.parse(stored) : [];
-      const filtered = arr.filter(x => x.email !== idOrEmail);
-      localStorage.setItem("usuarios", JSON.stringify(filtered));
-      cargarUsuarios();
-    }
-  };
 
   return (
     <main className="page">
@@ -144,56 +52,63 @@ export default function Registro() {
         <div className="col-12 col-md-6">
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-3">
-              <label htmlFor="nombre" className="form-label">Nombre completo</label>
+              <label className="form-label">Nombre</label>
               <input
-                id="nombre"
-                aria-label="Nombre completo"
-                className={`form-control ${submitted && !isNombreValid ? "is-invalid" : ""}`}
+                type="text"
+                className="form-control"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
               />
             </div>
 
             <div className="mb-3">
-              <label htmlFor="email" className="form-label">Correo electrónico</label>
+              <label className="form-label">Correo</label>
               <input
-                id="email"
-                aria-label="Correo electrónico"
                 type="email"
-                className={`form-control ${email && !isEmailValid ? "is-invalid" : ""}`}
+                className={`form-control ${
+                  email && !isEmailValid ? "is-invalid" : ""
+                }`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+              <div className="invalid-feedback">Ingresa un correo válido.</div>
             </div>
 
             <div className="mb-3">
-              <label htmlFor="password" className="form-label">Contraseña</label>
+              <label className="form-label">Contraseña</label>
               <input
-                id="password"
-                aria-label="Contraseña"
                 type="password"
-                className={`form-control ${password && !isPasswordValid ? "is-invalid" : ""}`}
+                className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
             <div className="mb-3">
-              <label htmlFor="confirm-password" className="form-label">Confirmar contraseña</label>
+              <label className="form-label">Confirmar contraseña</label>
               <input
-                id="confirm-password"
-                aria-label="Confirmar contraseña"
                 type="password"
-                className={`form-control ${submitted && !passwordsMatch ? "is-invalid" : ""}`}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`form-control ${
+                  confirm && !passwordsMatch ? "is-invalid" : ""
+                }`}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
               />
-              <div className="invalid-feedback">Las contraseñas no coinciden.</div>
+              <div className="invalid-feedback">
+                Las contraseñas no coinciden.
+              </div>
             </div>
 
             {error && <div className="alert alert-danger">{error}</div>}
+            {mensaje && <div className="alert alert-success">{mensaje}</div>}
 
-            <button type="submit" className="btn btn-dark">Registrarse</button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={!isFormValid}
+            >
+              Registrarse
+            </button>
           </form>
         </div>
       </div>

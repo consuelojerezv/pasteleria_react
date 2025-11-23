@@ -12,7 +12,9 @@ import Footer from "./components/footer.jsx";
 import Admin from "./components/admin";
 
 export default function App() {
+  // Lee el usuario actual desde localStorage
   const user = JSON.parse(localStorage.getItem("usuarioActual") || "null");
+  const rol = user?.rol || null; // "ROLE_ADMIN", "ROLE_VENDEDOR", "ROLE_CLIENTE" o null
 
   return (
     <>
@@ -27,13 +29,18 @@ export default function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/producto/:id" element={<DetalleProducto />} />
 
-        {/* 🔒 Ruta protegida */}
+        {/* 🔒 Admin: SOLO ROLE_ADMIN */}
         <Route
           path="/admin"
           element={
-            user ? <Admin /> : <Navigate to="/" replace />
+            rol === "ROLE_ADMIN"
+              ? <Admin />
+              : <Navigate to="/" replace />
           }
         />
+
+        {/* Cualquier ruta rara → Inicio */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       <Footer />
