@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Productos from "./pages/Productos";
@@ -11,23 +12,31 @@ import Footer from "./components/footer.jsx";
 import Admin from "./components/admin";
 
 export default function App() {
+  const user = JSON.parse(localStorage.getItem("usuarioActual") || "null");
+
   return (
-    <BrowserRouter>
+    <>
       <Navbar />
+
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/productos" element={<Productos/>} />
+        <Route path="/productos" element={<Productos />} />
         <Route path="/carrito" element={<Carrito />} />
+        <Route path="/contacto" element={<Contacto />} />
         <Route path="/inicio" element={<InicioSesion />} />
         <Route path="/registro" element={<Registro />} />
-        <Route path="/contacto" element={<Contacto />} />
-        <Route path="/producto/:id" element={<DetalleProducto />} />z
-      </Routes> 
+        <Route path="/producto/:id" element={<DetalleProducto />} />
+
+        {/* 🔒 Ruta protegida */}
+        <Route
+          path="/admin"
+          element={
+            user ? <Admin /> : <Navigate to="/" replace />
+          }
+        />
+      </Routes>
+
       <Footer />
-    </BrowserRouter>
+    </>
   );
 }
-
-
-

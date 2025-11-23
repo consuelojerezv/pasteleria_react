@@ -1,8 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import InicioSesion from './InicioSesion'
-import { useState } from "react";
-import axios from "axios";
 
 describe('InicioSesion', () => {
   beforeEach(() => localStorage.clear())
@@ -22,35 +20,3 @@ describe('InicioSesion', () => {
     expect(window.alert).toHaveBeenCalled()
   })
 })
-
-
-
-
-export default function InicioSesion() {
-  const [usuario, setUsuario] = useState({
-    username: "",
-    password: ""
-  });
-
-  const handleChange = (e) => {
-    setUsuario({...usuario, [e.target.name]: e.target.value });
-  };
-
-  const iniciarSesion = () => {
-    axios.post("http://localhost:8080/api/v1/auth/login", usuario)
-      .then(res => {
-        localStorage.setItem("token", res.data.token);
-        alert("Inicio de sesión exitoso!");
-      })
-      .catch(err => console.log(err));
-  }
-
-  return (
-    <div>
-      <h2>Iniciar Sesión</h2>
-      <input name="username" onChange={handleChange} placeholder="Usuario" />
-      <input name="password" type="password" onChange={handleChange} placeholder="Contraseña" />
-      <button onClick={iniciarSesion}>Ingresar</button>
-    </div>
-  );
-}
