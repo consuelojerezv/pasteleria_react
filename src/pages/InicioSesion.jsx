@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function InicioSesion() {
   const [email, setEmail] = useState("");
@@ -20,28 +21,59 @@ export default function InicioSesion() {
       return;
     }
 
-    const stored = localStorage.getItem("usuarios");
-    const usuarios = stored ? JSON.parse(stored) : [];
+    axios
+      .post("http://localhost:8080/api/v1/auth/login", { email, password })
+      .then((res) => {
+        const data = res?.data || {};
 
-    const usuario = usuarios.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
+        if (!data.accessToken) {
+          throw new Error("Respuesta inválida del backend");
+        }
 
-    if (!usuario) {
-      setError("Correo o contraseña incorrectos.");
-      return;
-    }
+        localStorage.setItem("token", data.accessToken);
+        localStorage.setItem(
+          "usuarioActual",
+          JSON.stringify({
+            nombre: data.nombre,
+            email: data.email,
+            rol: data.rol,
+          })
+        );
 
-    // Guardar con la key que esperan los tests
-    localStorage.setItem(
-      "usuarioActual",
-      JSON.stringify({ nombre: usuario.nombre, email: usuario.email })
-    );
+        // Actualizar navbar sin recargar
+        window.dispatchEvent(new Event("userUpdated"));
 
-    // llamar alert (los tests mockean window.alert)
-    alert("Inicio de sesión correcto");
+        navigate("/admin"); // ENTRADA DIRECTA AL ADMIN
+      })
+      .catch(() => {
+        const stored = localStorage.getItem("usuarios");
+        const usuarios = stored ? JSON.parse(stored) : [];
 
-    navigate("/");
+        const usuario = usuarios.find(
+          (u) =>
+            u.email.toLowerCase() === email.toLowerCase() &&
+            u.password === password
+        );
+
+        if (!usuario) {
+          setError("Correo o contraseña incorrectos.");
+          return;
+        }
+
+        localStorage.removeItem("token");
+
+        localStorage.setItem(
+          "usuarioActual",
+          JSON.stringify({
+            nombre: usuario.nombre,
+            email: usuario.email,
+          })
+        );
+
+        window.dispatchEvent(new Event("userUpdated"));
+
+        navigate("/admin"); // TAMBIÉN VA AL ADMIN
+      });
   }
 
   return (
@@ -51,28 +83,26 @@ export default function InicioSesion() {
         <div className="col-12 col-md-6">
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-3">
-              <label htmlFor="email" className="form-label">Correo</label>
+              <label className="form-label">Correo</label>
               <input
                 type="email"
-                className={`form-control ${email && !isEmailValid ? "is-invalid" : ""}`}
-                id="email"
-                placeholder="Ingresa tu correo electrónico"
+                className={`form-control ${
+                  email && !isEmailValid ? "is-invalid" : ""
+                }`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <div className="invalid-feedback">Ingresa un correo válido.</div>
             </div>
+
             <div className="mb-3">
-              <label htmlFor="password" className="form-label">Contraseña</label>
+              <label className="form-label">Contraseña</label>
               <input
                 type="password"
-                className={`form-control ${password && password.length === 0 ? "is-invalid" : ""}`}
-                id="password"
-                placeholder="Ingresa tu contraseña"
+                className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <div className="invalid-feedback">La contraseña es obligatoria.</div>
             </div>
 
             {error && <div className="alert alert-danger">{error}</div>}

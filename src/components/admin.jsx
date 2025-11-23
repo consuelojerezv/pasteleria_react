@@ -3,152 +3,237 @@ import axios from "axios";
 
 export default function Admin() {
   const [productos, setProductos] = useState([]);
-  
+
   const [form, setForm] = useState({
     nombre: "",
     descripcion: "",
     precio: "",
-    imagen: ""
+    imagen: "",
   });
 
   const [editId, setEditId] = useState(null);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
-  // -------------------------------
-  // 1. LISTAR PRODUCTOS
-  // -------------------------------
+  // ============================
+  // 1. CARGAR PRODUCTOS
+  // ============================
   const cargarProductos = () => {
-    axios.get("http://localhost:8080/api/v1/productos", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then(res => setProductos(res.data))
-      .catch(err => console.log(err));
+    setError("");
+    axios
+      .get("http://localhost:8080/api/v1/productos", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setProductos(res.data || []);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("No se pudieron cargar los productos (revisar token / backend).");
+      });
   };
 
   useEffect(() => {
     cargarProductos();
   }, []);
 
-  // -------------------------------
-  // CONTROLAR FORMULARIO
-  // -------------------------------
+  // ============================
+  // 2. CONTROLAR FORMULARIO
+  // ============================
   const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // -------------------------------
-  // 2. CREAR PRODUCTO
-  // -------------------------------
-  const crearProducto = () => {
-    axios.post("http://localhost:8080/api/v1/productos", form, {
+  // ============================
+  // 3. GUARDAR (CREAR / EDITAR)
+  // ============================
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+    setMensaje("");
+
+    const data = {
+      nombre: form.nombre,
+      descripcion: form.descripcion,
+      precio: Number(form.precio),
+      imagen: form.imagen,
+    };
+
+    const config = {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    })
-      .then(() => {
-        alert("Producto creado!");
-        cargarProductos();
-        setForm({ nombre: "", descripcion: "", precio: "", imagen: "" });
-      })
-      .catch(err => console.log(err));
-  };
+    };
 
-  // -------------------------------
-  // 3. PREPARAR EDICIÓN
-  // -------------------------------
-  const cargarEdicion = (producto) => {
-    setEditId(producto.id);
-    setForm({
-      nombre: producto.nombre,
-      descripcion: producto.descripcion,
-      precio: producto.precio,
-      imagen: producto.imagen
-    });
-  };
+    // Si hay editId, hacemos PUT (editar). Si no, POST (crear)
+    const peticion = editId
+      ? axios.put(`http://localhost:8080/api/v1/productos/${editId}`, data, config)
+      : axios.post("http://localhost:8080/api/v1/productos", data, config);
 
-  // -------------------------------
-  // 4. GUARDAR EDICIÓN
-  // -------------------------------
-  const editarProducto = () => {
-    axios.put(`http://localhost:8080/api/v1/productos/${editId}`, form, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
+    peticion
       .then(() => {
-        alert("Producto actualizado!");
-        cargarProductos();
+        setMensaje(editId ? "Producto actualizado correctamente." : "Producto creado correctamente.");
+        setForm({
+          nombre: "",
+          descripcion: "",
+          precio: "",
+          imagen: "",
+        });
         setEditId(null);
-        setForm({ nombre: "", descripcion: "", precio: "", imagen: "" });
-      })
-      .catch(err => console.log(err));
-  };
-
-  // -------------------------------
-  // 5. ELIMINAR PRODUCTO
-  // -------------------------------
-  const eliminarProducto = (id) => {
-    axios.delete(`http://localhost:8080/api/v1/productos/${id}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then(() => {
-        alert("Producto eliminado!");
         cargarProductos();
       })
-      .catch(err => console.log(err));
+      .catch((err) => {
+        console.error(err);
+        setError("Error al guardar el producto.");
+      });
   };
 
-  // -------------------------------
-  // UI
-  // -------------------------------
+  // ============================
+  // 4. EDITAR (CARGAR EN FORM)
+  // ============================
+  const handleEdit = (producto) => {
+    setEditId(producto.id); // ajusta al nombre real de tu PK
+    setForm({
+      nombre: producto.nombre || "",
+      descripcion: producto.descripcion || "",
+      precio: producto.precio?.toString() || "",
+      imagen: producto.imagen || "",
+    });
+    setMensaje("");
+    setError("");
+  };
+
+  // ============================
+  // 5. ELIMINAR
+  // ============================
+  const handleDelete = (id) => {
+    if (!window.confirm("¿Seguro que quieres eliminar este producto?")) return;
+
+    axios
+      .delete(`http://localhost:8080/api/v1/productos/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then(() => {
+        setMensaje("Producto eliminado correctamente.");
+        cargarProductos();
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Error al eliminar el producto.");
+      });
+  };
+
+  // ============================
+  // 6. RENDER
+  // ============================
   return (
     <div style={{ padding: "20px" }}>
-      <h2>ADMINISTRADOR – CRUD Productos</h2>
+      <h1>Panel de Administración</h1>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
 
       {/* FORMULARIO */}
-      <div style={{ marginBottom: "20px" }}>
-        <h3>{editId ? "Editar Producto" : "Crear Producto"}</h3>
+      <h2>{editId ? "Editar producto" : "Crear producto"}</h2>
+      <form onSubmit={handleSubmit} style={{ maxWidth: "400px", marginBottom: "30px" }}>
+        <div>
+          <label>Nombre</label>
+          <input
+            type="text"
+            name="nombre"
+            value={form.nombre}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-        <input name="nombre" placeholder="Nombre"
-          value={form.nombre} onChange={handleChange} />
+        <div>
+          <label>Descripción</label>
+          <input
+            type="text"
+            name="descripcion"
+            value={form.descripcion}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input name="descripcion" placeholder="Descripción"
-          value={form.descripcion} onChange={handleChange} />
+        <div>
+          <label>Precio</label>
+          <input
+            type="number"
+            name="precio"
+            value={form.precio}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-        <input name="precio" placeholder="Precio"
-          value={form.precio} onChange={handleChange} />
+        <div>
+          <label>URL Imagen</label>
+          <input
+            type="text"
+            name="imagen"
+            value={form.imagen}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input name="imagen" placeholder="URL Imagen"
-          value={form.imagen} onChange={handleChange} />
-
-        {editId ? (
-          <button onClick={editarProducto}>Guardar Cambios</button>
-        ) : (
-          <button onClick={crearProducto}>Crear</button>
-        )}
-      </div>
+        <button type="submit" style={{ marginTop: "10px" }}>
+          {editId ? "Actualizar" : "Crear"}
+        </button>
+      </form>
 
       {/* LISTADO */}
-      <h3>Productos Registrados</h3>
-      <ul>
-        {productos.map(p => (
-          <li key={p.id}>
-            <b>{p.nombre}</b> — ${p.precio}
-
-            <button onClick={() => cargarEdicion(p)}>
-              Editar
-            </button>
-
-            <button onClick={() => eliminarProducto(p.id)}>
-              Eliminar
-            </button>
-          </li>
-        ))}
-      </ul>
+      <h2>Listado de productos</h2>
+      {productos.length === 0 ? (
+        <p>No hay productos registrados.</p>
+      ) : (
+        <table border="1" cellPadding="6" cellSpacing="0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Imagen</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {productos.map((p) => (
+              <tr key={p.id}>
+                <td>{p.id}</td>
+                <td>{p.nombre}</td>
+                <td>{p.descripcion}</td>
+                <td>{p.precio}</td>
+                <td>
+                  {p.imagen && (
+                    <img
+                      src={p.imagen}
+                      alt={p.nombre}
+                      style={{ width: "60px", height: "60px", objectFit: "cover" }}
+                    />
+                  )}
+                </td>
+                <td>
+                  <button onClick={() => handleEdit(p)}>Editar</button>
+                  <button onClick={() => handleDelete(p.id)} style={{ marginLeft: "5px" }}>
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
-

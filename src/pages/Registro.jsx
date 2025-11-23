@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function Registro() {
@@ -9,8 +9,7 @@ export default function Registro() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isEmailValid = !!email && emailRegex.test(email);
+  const isEmailValid = !!email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPasswordValid = password.length >= 4; // simple para tests
   const isNombreValid = nombre.trim().length > 0;
   const passwordsMatch = password === confirmPassword;
@@ -20,11 +19,11 @@ export default function Registro() {
     e.preventDefault();
     setSubmitted(true);
     setError("");
+  // console.log('Registro.handleSubmit', { nombre, email, password, confirmPassword, isFormValid, passwordsMatch });
     if (!isFormValid) {
       if (!passwordsMatch) setError("Las contraseñas no coinciden.");
       return;
     }
-
     const stored = localStorage.getItem("usuarios");
     const usuarios = stored ? JSON.parse(stored) : [];
 
@@ -33,11 +32,24 @@ export default function Registro() {
       return;
     }
 
-    usuarios.push({ nombre, email: email.toLowerCase(), password });
+    const nuevo = { nombre, email: email.toLowerCase(), password };
+
+    // Siempre guardar en localStorage (para compatibilidad con tests y uso sin backend)
+    usuarios.push(nuevo);
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
 
-    // feedback para tests
-    alert("Registro completado correctamente");
+    // Si hay token, también intentar registrar en el backend
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.post("http://localhost:8080/api/v1/usuarios", { nombre, correo: email.toLowerCase(), password }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(() => cargarUsuarios())
+        .catch(err => console.log(err));
+    } else {
+      // feedback para tests
+      alert("Registro completado correctamente");
+    }
 
     setNombre("");
     setEmail("");
@@ -45,6 +57,85 @@ export default function Registro() {
     setConfirmPassword("");
     setSubmitted(false);
   }
+
+  // -------------------------------
+  // CRUD de usuarios (usa backend si hay token, sino usa localStorage)
+  // -------------------------------
+  const [usuarios, setUsuarios] = useState([]);
+  const [editId, setEditId] = useState(null);
+
+  const cargarUsuarios = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.get("http://localhost:8080/api/v1/usuarios", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => setUsuarios(res.data))
+        .catch(err => console.log(err));
+    } else {
+      const stored = localStorage.getItem("usuarios");
+      setUsuarios(stored ? JSON.parse(stored) : []);
+    }
+  };
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, []);
+
+  const cargarEdicion = (u) => {
+    setEditId(u.id || u.email);
+    setNombre(u.nombre);
+    setEmail(u.correo || u.email);
+    setPassword(u.password || "");
+    setConfirmPassword(u.password || "");
+  };
+
+  const guardarEdicion = () => {
+    if (!editId) return;
+    const token = localStorage.getItem("token");
+    if (token && String(editId).startsWith && !String(editId).includes("@")) {
+      // si editId es numérico/id del backend
+      axios.put(`http://localhost:8080/api/v1/usuarios/${editId}`, { nombre, correo: email, password }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(() => {
+          alert("Usuario actualizado!");
+          cargarUsuarios();
+          setEditId(null);
+          setNombre(""); setEmail(""); setPassword(""); setConfirmPassword("");
+        })
+        .catch(err => console.log(err));
+    } else {
+      // actualizar en localStorage (identificamos por email)
+      const stored = localStorage.getItem("usuarios");
+      const arr = stored ? JSON.parse(stored) : [];
+      const idx = arr.findIndex(x => x.email === (editId));
+      if (idx !== -1) {
+        arr[idx] = { nombre, email, password };
+        localStorage.setItem("usuarios", JSON.stringify(arr));
+        cargarUsuarios();
+        setEditId(null);
+        setNombre(""); setEmail(""); setPassword(""); setConfirmPassword("");
+      }
+    }
+  };
+
+  const eliminarUsuario = (idOrEmail) => {
+    const token = localStorage.getItem("token");
+    if (token && String(idOrEmail).startsWith && !String(idOrEmail).includes("@")) {
+      axios.delete(`http://localhost:8080/api/v1/usuarios/${idOrEmail}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(() => { alert("Usuario eliminado!"); cargarUsuarios(); })
+        .catch(err => console.log(err));
+    } else {
+      const stored = localStorage.getItem("usuarios");
+      const arr = stored ? JSON.parse(stored) : [];
+      const filtered = arr.filter(x => x.email !== idOrEmail);
+      localStorage.setItem("usuarios", JSON.stringify(filtered));
+      cargarUsuarios();
+    }
+  };
 
   return (
     <main className="page">
@@ -102,212 +193,10 @@ export default function Registro() {
 
             {error && <div className="alert alert-danger">{error}</div>}
 
-            <button type="submit" className="btn btn-dark" disabled={!isFormValid}>Registrarse</button>
+            <button type="submit" className="btn btn-dark">Registrarse</button>
           </form>
         </div>
       </div>
     </main>
-  );
-}
-
-
-export default function Registro() {
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-    correo: "",
-  });
-
-  const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
-  };
-
-  const registrarUsuario = () => {
-    axios.post("http://localhost:8080/api/v1/auth/register", form)
-      .then(res => {
-        alert("Usuario registrado!");
-      })
-      .catch(err => console.log(err));
-  };
-
-  return (
-    <div>
-      <h2>Registro</h2>
-
-      <input name="username" onChange={handleChange} placeholder="Usuario" />
-      <input name="correo" onChange={handleChange} placeholder="Correo" />
-      <input name="password" type="password" onChange={handleChange} placeholder="Contraseña" />
-
-      <button onClick={registrarUsuario}>Registrar</button>
-    </div>
-  );
-}
-
-import { useEffect, useState } from "react";
-import axios from "axios";
-
-export default function Registro() {
-  // -------------------------------
-  // Estados del formulario
-  // -------------------------------
-  const [form, setForm] = useState({
-    nombre: "",
-    correo: "",
-    password: "",
-    rol: ""
-  });
-
-  const [usuarios, setUsuarios] = useState([]);
-  const [editId, setEditId] = useState(null);
-
-  // --------------------------------
-  // CONTROLAR FORMULARIO
-  // --------------------------------
-  const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
-  };
-
-  // --------------------------------
-  // 1. LISTAR USUARIOS
-  // --------------------------------
-  const cargarUsuarios = () => {
-    axios.get("http://localhost:8080/api/v1/usuarios", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      }
-    })
-      .then(res => setUsuarios(res.data))
-      .catch(err => console.log(err));
-  };
-
-  useEffect(() => {
-    cargarUsuarios();
-  }, []);
-
-  // --------------------------------
-  // 2. CREAR USUARIO
-  // --------------------------------
-  const crearUsuario = () => {
-    axios.post("http://localhost:8080/api/v1/usuarios", form, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      }
-    })
-      .then(() => {
-        alert("Usuario creado!");
-        cargarUsuarios();
-        setForm({ nombre: "", correo: "", password: "", rol: "" });
-      })
-      .catch(err => console.log(err));
-  };
-
-  // --------------------------------
-  // 3. CARGAR DATOS PARA EDICIÓN
-  // --------------------------------
-  const cargarEdicion = (usuario) => {
-    setEditId(usuario.id);
-    setForm({
-      nombre: usuario.nombre,
-      correo: usuario.correo,
-      password: usuario.password,
-      rol: usuario.rol
-    });
-  };
-
-  // --------------------------------
-  // 4. GUARDAR EDICIÓN
-  // --------------------------------
-  const editarUsuario = () => {
-    axios.put(`http://localhost:8080/api/v1/usuarios/${editId}`, form, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      }
-    })
-      .then(() => {
-        alert("Usuario actualizado!");
-        cargarUsuarios();
-        setEditId(null);
-        setForm({ nombre: "", correo: "", password: "", rol: "" });
-      })
-      .catch(err => console.log(err));
-  };
-
-  // --------------------------------
-  // 5. ELIMINAR USUARIO
-  // --------------------------------
-  const eliminarUsuario = (id) => {
-    axios.delete(`http://localhost:8080/api/v1/usuarios/${id}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      }
-    })
-      .then(() => {
-        alert("Usuario eliminado!");
-        cargarUsuarios();
-      })
-      .catch(err => console.log(err));
-  };
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <h2>Registro / CRUD Usuarios</h2>
-
-      {/* FORMULARIO CRUD */}
-      <div>
-        <h3>{editId ? "Editar Usuario" : "Crear Usuario"}</h3>
-
-        <input
-          name="nombre"
-          placeholder="Nombre"
-          value={form.nombre}
-          onChange={handleChange}
-        />
-
-        <input
-          name="correo"
-          placeholder="Correo"
-          value={form.correo}
-          onChange={handleChange}
-        />
-
-        <input
-          name="password"
-          placeholder="Contraseña"
-          value={form.password}
-          onChange={handleChange}
-        />
-
-        <input
-          name="rol"
-          placeholder="Rol (admin/cliente)"
-          value={form.rol}
-          onChange={handleChange}
-        />
-
-        {editId ? (
-          <button onClick={editarUsuario}>Guardar Cambios</button>
-        ) : (
-          <button onClick={crearUsuario}>Crear Usuario</button>
-        )}
-      </div>
-
-      {/* LISTADO */}
-      <h3>Usuarios Registrados</h3>
-      <ul>
-        {usuarios.map(u => (
-          <li key={u.id}>
-            <b>{u.nombre}</b> - {u.correo} - rol: {u.rol}
-
-            <button onClick={() => cargarEdicion(u)}>
-              Editar
-            </button>
-
-            <button onClick={() => eliminarUsuario(u.id)}>
-              Eliminar
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
